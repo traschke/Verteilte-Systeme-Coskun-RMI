@@ -8,7 +8,6 @@ import java.io.InputStreamReader;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.util.Date;
 
 /**
  * Created by Timo on 09.11.2015.
@@ -16,18 +15,19 @@ import java.util.Date;
  */
 public class BulletinBoardClient {
 
-    private static String serverAddress = "localhost";
+    private static String serverAddress = "141.64.171.187";
     private static BulletinBoardServerInterface bulletinServer;
     private static String input;
-    private static Date date = new Date();
 
     public static void main(String args[]) {
 
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        System.out.println(serverAddress);
         if (args.length != 0)
             serverAddress = args[0];
         try {
             bulletinServer = (BulletinBoardServerInterface) Naming.lookup("rmi://" + serverAddress + "/Pinnwand");
+            System.out.println(bulletinServer);
             hilfe();
             while ((input = br.readLine()) != null) {
                 if (input.equals("hilfe")) {
@@ -90,31 +90,43 @@ public class BulletinBoardClient {
         }
         if (msg.length() > 160) {
             System.out.println("Message to long. Maximum of 160 Characters required.");
+            return;
         }
-        System.out.println("[" + date + "] \"" + msg + "\"");
-        bulletinServer.putMessage(date + "] " + msg);
+        System.out.println("\"" + msg + "\"");
+        if (!bulletinServer.putMessage(msg)) {
+            System.out.println("You are not logged in.");
+        }
     }
 
     private static void getMsgAt() throws RemoteException {
-        if (bulletinServer.getMessageCount() == 0) {
-            System.out.println("No messages...");
-            return;
+        int messageCount = bulletinServer.getMessageCount();
+
+        if (!(messageCount == -1)) {
+            if (messageCount == 0) {
+                System.out.println("No messages...");
+                return;
+            }
+            int i = Integer.parseInt(input.split("(?<=\\D)(?=\\d)|(?<=\\d)(?=\\D)")[1]);
+            System.out.println("Message[" + i + "]= " + bulletinServer.getMessage(i - 1));
+        } else {
+            System.out.println("You are not logged in.");
         }
-        int i = Integer.parseInt(input.split("(?<=\\D)(?=\\d)|(?<=\\d)(?=\\D)")[1]);
-        System.out.println("Message[" + i + "]= " + bulletinServer.getMessage(i - 1));
     }
 
     private static void getMsgs() throws RemoteException {
         String[] messages = bulletinServer.getMessages();
+        if (messages != null) {
+            if (messages.length == 0) {
+                System.out.println("No messages available...");
+                return;
+            }
 
-        if (messages.length == 0) {
-            System.out.println("No messages available...");
-            return;
-        }
-
-        int counter = 0;
-        for (String message : messages) {
-            System.out.println("[Messages " + ++counter + ": " + message + "\n\n");
+            int counter = 0;
+            for (String message : messages) {
+                System.out.println("[Messages " + ++counter + ": " + message + "\n\n");
+            }
+        } else {
+            System.out.println("You are not logged in.");
         }
     }
 }
